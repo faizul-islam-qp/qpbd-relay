@@ -16,6 +16,12 @@ export const authApi = {
   verifyOtp: (phone: string, otp: string) =>
     api.post('/auth/staff/otp/verify', { phone, otp }).then((r) => r.data),
 
+  staffPasswordLogin: (phone: string, password: string) =>
+    api.post('/auth/staff/login', { phone, password }).then((r) => r.data),
+
+  setPassword: (password: string) =>
+    api.patch('/auth/set-password', { password }).then((r) => r.data),
+
   me: () => api.get('/auth/me').then((r) => r.data),
 
   getBotInfo: () =>

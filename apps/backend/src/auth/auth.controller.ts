@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common'
+import { Controller, Post, Body, Get, UseGuards, Patch } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { TelegramService } from '../telegram/telegram.service'
 import { LoginDto } from './dto/login.dto'
@@ -37,6 +37,17 @@ export class AuthController {
   @Post('staff/otp/verify')
   verifyOtp(@Body() dto: VerifyOtpDto) {
     return this.authService.verifyOtp(dto.phone, dto.otp)
+  }
+
+  @Post('staff/login')
+  staffPasswordLogin(@Body() dto: { phone: string; password: string }) {
+    return this.authService.staffPasswordLogin(dto.phone, dto.password)
+  }
+
+  @Patch('set-password')
+  @UseGuards(JwtAuthGuard)
+  setPassword(@GetUser() user: any, @Body() dto: { password: string }) {
+    return this.authService.setStaffPassword(user.id, dto.password)
   }
 
   @Get('me')

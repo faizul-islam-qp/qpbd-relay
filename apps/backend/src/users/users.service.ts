@@ -36,6 +36,17 @@ export class UsersService implements OnModuleInit {
     return this.repo.findOne({ where: { phone } })
   }
 
+  async findByPhoneWithPassword(phone: string) {
+    return this.repo.createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .where('u.phone = :phone', { phone })
+      .getOne()
+  }
+
+  async updatePassword(id: string, passwordHash: string) {
+    await this.repo.update(id, { passwordHash })
+  }
+
   async create(data: Partial<User>) {
     const user = this.repo.create(data)
     return this.repo.save(user)

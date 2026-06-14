@@ -15,6 +15,13 @@ import { EmailService } from '../email/email.service'
 const OTP_TTL_MS = 5 * 60 * 1000   // 5 minutes
 const OTP_COOLDOWN_MS = 60 * 1000  // 1 minute
 
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('880')) return '+' + digits
+  if (digits.startsWith('0')) return '+88' + digits
+  return '+880' + digits
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -86,7 +93,27 @@ export class AuthService {
     return this.issueToken(user)
   }
 
+  async staffPasswordLogin(phone: string, password: string) {
+    const normalized = normalizePhone(phone)
+    const user = await this.usersService.findByPhoneWithPassword(normalized)
+    if (!user || user.role !== UserRole.STAFF || !user.isActive) {
+      throw new UnauthorizedException('Invalid credentials')
+    }
+    if (!user.passwordHash) throw new UnauthorizedException('Password not set — use OTP login first')
+    const valid = await bcrypt.compare(password, user.passwordHash)
+    if (!valid) throw new UnauthorizedException('Invalid credentials')
+    return this.issueToken(user)
+  }
+
+  async setStaffPassword(userId: string, password: string) {
+    const passwordHash = await bcrypt.hash(password, 10)
+    await this.usersService.updatePassword(userId, passwordHash)
+    return { success: true }
+  }
+
   async sendOtp(phone: string) {
+    const normalized = normalizePhone(phone)
+    phone = normalized
     const user = await this.usersService.findByPhone(phone)
     if (!user || user.role !== UserRole.STAFF) {
       throw new UnauthorizedException('Phone number not registered as staff')
@@ -108,27 +135,43 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + OTP_TTL_MS)
     await this.otpRepo.save(this.otpRepo.create({ phone, code, expiresAt }))
 
+    const botReady = this.telegramService.isBotConfigured()
+    const hasChatId = !!user.telegramChatId
     const sent = await this.telegramService.sendOtp(user.telegramChatId, code)
 
-    console.log(`[OTP] Phone: ${phone} | Code: ${code} | Telegram: ${sent ? 'sent' : 'not configured'}`)
+    console.log(`[OTP] Phone: ${phone} | Code: ${code} | Bot: ${botReady} | ChatId: ${hasChatId} | Sent: ${sent}`)
+
+    let message: string
+    if (sent) {
+      message = 'OTP sent via Telegram'
+    } else if (!botReady) {
+      message = 'OTP ready (Telegram bot not configured)'
+    } else if (!hasChatId) {
+      message = 'Telegram not linked — open the bot and press Start first, then try again'
+    } else {
+      message = 'Failed to send via Telegram — check bot connectivity'
+    }
 
     return {
-      message: sent ? 'OTP sent via Telegram' : 'OTP logged (Telegram not configured)',
+      message,
+      telegram_linked: hasChatId,
       ...(process.env.NODE_ENV !== 'production' && { debug_otp: code }),
     }
   }
 
   async verifyOtp(phone: string, otp: string) {
-    const user = await this.usersService.findByPhone(phone)
+    const normalized = normalizePhone(phone)
+    const user = await this.usersService.findByPhoneWithPassword(normalized)
     if (!user || user.role !== UserRole.STAFF) throw new UnauthorizedException()
 
     const entry = await this.otpRepo.findOne({
-      where: { phone, code: otp, expiresAt: MoreThan(new Date()) },
+      where: { phone: normalized, code: otp, expiresAt: MoreThan(new Date()) },
     })
     if (!entry) throw new UnauthorizedException('Invalid or expired OTP')
 
-    await this.otpRepo.delete({ phone })
-    return this.issueToken(user)
+    await this.otpRepo.delete({ phone: normalized })
+    const token = this.issueToken(user)
+    return { ...token, needs_password: !user.passwordHash }
   }
 
   private issueToken(user: User) {
