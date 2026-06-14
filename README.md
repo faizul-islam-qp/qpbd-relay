@@ -113,6 +113,19 @@ docker compose up --build
 
 ## Production / Local Network Deployment
 
+### Makefile commands
+
+| Command | Does |
+|---------|------|
+| `make up` | Build + start in background |
+| `make down` | Stop containers |
+| `make restart` | Stop + rebuild + start |
+| `make clean` | Stop + remove containers, volumes, images + prune dangling |
+| `make logs` | Tail all logs |
+| `make ps` | Show container status |
+
+### Setup
+
 Edit `apps/backend/.env.prod` (see [apps/backend/README.md](apps/backend/README.md)):
 - Set `DATABASE_URL`, `JWT_SECRET`, `VAPID_*`, `TELEGRAM_*`, `SMTP_*`
 - Set `CORS_ORIGINS=*` for open local network access

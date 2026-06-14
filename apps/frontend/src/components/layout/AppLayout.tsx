@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Outlet, Navigate } from 'react-router-dom'
-import { Moon, Sun, BellOff } from 'lucide-react'
+import { Moon, Sun, BellOff, BellX } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useThemeStore } from '@/store/theme'
 import { DesktopSidebar } from './DesktopSidebar'
@@ -44,6 +44,17 @@ export function AppLayout() {
                 title="Enable browser notifications"
               >
                 <BellOff className="h-4 w-4" />
+              </Button>
+            )}
+            {supported && permission === 'denied' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-red-500 hover:text-red-600"
+                onClick={() => alert('Notifications are blocked.\n\nTo enable: click the lock/info icon in the address bar → Site settings → Notifications → Allow.')}
+                title="Notifications blocked — click for instructions"
+              >
+                <BellX className="h-4 w-4" />
               </Button>
             )}
             <NotificationBell />
