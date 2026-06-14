@@ -31,7 +31,7 @@ export function AppLayout() {
         {/* Top header */}
         <header className="flex items-center justify-between px-4 h-14 border-b bg-card flex-shrink-0">
           {/* App name — mobile only, desktop shows in sidebar */}
-          <span className="font-bold text-sm md:hidden">🏢 Wick Office</span>
+          <span className="font-bold text-sm md:hidden">📡 QPBD Relay</span>
           <span className="hidden md:block" />
 
           <div className="flex items-center gap-1">

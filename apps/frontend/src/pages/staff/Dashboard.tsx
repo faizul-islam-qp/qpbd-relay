@@ -6,7 +6,7 @@ import { PriorityBadge } from '@/components/common/PriorityBadge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Clock, CheckCircle, XCircle, Play, UserCheck, MessageSquare } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, Play, UserCheck, MessageSquare, RotateCcw } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useAuthStore } from '@/store/auth'
 import { RequestComments } from '@/components/common/RequestComments'
@@ -18,6 +18,15 @@ const STATUS_ACTIONS: Record<string, { next: string; label: string; icon: any; v
   IN_PROGRESS: [
     { next: 'DONE',     label: 'Complete', icon: CheckCircle, variant: 'default' },
     { next: 'REJECTED', label: 'Reject',   icon: XCircle,     variant: 'destructive' },
+  ],
+  REJECTED: [
+    { next: 'PENDING',     label: 'Re-queue',  icon: RotateCcw,    variant: 'outline' },
+    { next: 'ASSIGNED',    label: 'Accept',    icon: UserCheck,    variant: 'default' },
+    { next: 'IN_PROGRESS', label: 'Start Now', icon: Play,         variant: 'default' },
+  ],
+  CANCELLED: [
+    { next: 'PENDING',     label: 'Re-queue',  icon: RotateCcw,    variant: 'outline' },
+    { next: 'IN_PROGRESS', label: 'Start Now', icon: Play,         variant: 'default' },
   ],
 }
 
@@ -31,11 +40,12 @@ export default function StaffDashboard() {
   const unreadComments = useUnreadComments((s) => s.unread)
   const [filter, setFilter] = useState<Filter>('active')
 
+  const TERMINAL = ['DONE', 'REJECTED', 'CANCELLED']
+
   const { data, isLoading } = useQuery({
     queryKey: ['requests', 'staff', filter],
     queryFn: () => {
       if (filter === 'mine') return requestsApi.list({ assignedTo: user!.id })
-      if (filter === 'done') return requestsApi.list({ status: 'DONE' })
       return requestsApi.list()
     },
     refetchInterval: 15_000,
@@ -47,14 +57,16 @@ export default function StaffDashboard() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['requests'] }),
   })
 
-  const requests = (data?.data || []).filter((r: any) =>
-    filter === 'active' ? !['DONE', 'REJECTED'].includes(r.status) : true
-  )
+  const requests = (data?.data || []).filter((r: any) => {
+    if (filter === 'active') return !TERMINAL.includes(r.status)
+    if (filter === 'done') return TERMINAL.includes(r.status)
+    return true
+  })
 
   const FILTERS: { key: Filter; label: string }[] = [
     { key: 'active', label: 'Active' },
     { key: 'mine', label: 'Mine' },
-    { key: 'done', label: 'Done' },
+    { key: 'done', label: 'Closed' },
   ]
 
   return (

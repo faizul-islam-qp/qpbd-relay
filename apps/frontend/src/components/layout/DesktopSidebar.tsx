@@ -33,7 +33,7 @@ export function DesktopSidebar() {
   return (
     <aside className="w-56 border-r bg-card flex flex-col h-screen sticky top-0">
       <div className="p-4 border-b">
-        <h1 className="font-bold text-base mb-3">🏢 Wick Office</h1>
+        <h1 className="font-bold text-base mb-3">📡 QPBD Relay</h1>
         <div className="flex items-center gap-2.5">
           <UserAvatar name={user?.name || '?'} email={user?.email} size={32} />
           <div className="min-w-0">

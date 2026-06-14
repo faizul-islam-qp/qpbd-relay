@@ -1,7 +1,7 @@
 import { IsString, IsIn, IsOptional } from 'class-validator'
 
 export class UpdateStatusDto {
-  @IsIn(['ASSIGNED', 'IN_PROGRESS', 'DONE', 'REJECTED', 'CANCELLED'])
+  @IsIn(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'DONE', 'REJECTED', 'CANCELLED'])
   status: string
 
   @IsOptional()

@@ -51,11 +51,11 @@ export class EmailService implements OnModuleInit {
       await this.transporter.sendMail({
         from,
         to,
-        subject: "Wick Office — Email Verification Code",
+        subject: "QPBD Relay — Email Verification Code",
         text: `Your verification code is: ${otp}\n\nThis code expires in 5 minutes. Do not share it.`,
         html: `
           <div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:24px">
-            <h2 style="margin:0 0 8px">🏢 Wick Office</h2>
+            <h2 style="margin:0 0 8px">🏢 QPBD Relay</h2>
             <p style="color:#666;margin:0 0 24px">Email Verification</p>
             <div style="background:#f4f4f5;border-radius:8px;padding:24px;text-align:center">
               <p style="margin:0 0 8px;color:#666;font-size:13px">Your verification code</p>

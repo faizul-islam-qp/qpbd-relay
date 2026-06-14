@@ -14,8 +14,8 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       manifest: {
-        name: 'Wick Office',
-        short_name: 'Wick Office',
+        name: 'QPBD Relay',
+        short_name: 'QPBD Relay',
         description: 'Internal office request system',
         theme_color: '#18181b',
         background_color: '#18181b',

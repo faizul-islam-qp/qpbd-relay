@@ -50,7 +50,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         } else {
           await this.bot.sendMessage(
             chatId,
-            `👋 *Welcome to Wick Office Bot!*\n\nSend your phone number (e.g. \`+8801XXXXXXXXX\`) to link your account.`,
+            `👋 *Welcome to QPBD Relay Bot!*\n\nSend your phone number (e.g. \`+8801XXXXXXXXX\`) to link your account.`,
             { parse_mode: "Markdown" },
           );
         }
@@ -107,7 +107,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         await this.usersService.update(user.id, { telegramChatId: chatId });
         await this.bot.sendMessage(
           chatId,
-          `✅ *Wick Office*\n\nAccount linked for *${user.name}*!\nYou'll receive OTP codes here when you log in.`,
+          `✅ *QPBD Relay*\n\nAccount linked for *${user.name}*!\nYou'll receive OTP codes here when you log in.`,
           { parse_mode: "Markdown" },
         );
         this.logger.log(`Staff account linked via Telegram`);
@@ -146,7 +146,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.bot.sendMessage(
         chatId,
-        `🔐 *Your Wick Office OTP:* \`${otp}\`\n\nExpires in 5 minutes. Do not share this code.`,
+        `🔐 *Your QPBD Relay OTP:* \`${otp}\`\n\nExpires in 5 minutes. Do not share this code.`,
         { parse_mode: "Markdown" },
       );
       return true;

@@ -7,7 +7,7 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 self.addEventListener('push', (event) => {
   const data = event.data?.json() || {}
-  const title = data.title || 'Wick Office'
+  const title = data.title || 'QPBD Relay'
   const options: NotificationOptions = {
     body: data.body || '',
     icon: data.icon || '/icons/icon-192.png',

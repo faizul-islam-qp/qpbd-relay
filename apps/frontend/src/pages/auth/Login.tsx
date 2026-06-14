@@ -175,7 +175,7 @@ export default function Login() {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <div className="text-5xl mb-3">🏢</div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Wick Office</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">QPBD Relay</h1>
           <p className="text-gray-500 dark:text-zinc-400 text-sm mt-1">Internal Request System</p>
         </div>
 
@@ -361,7 +361,7 @@ export default function Login() {
                               <a href={deepLink} target="_blank" rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 font-semibold text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 transition-colors">
                                 <ExternalLink className="h-3.5 w-3.5" />
-                                Open Wick Office Bot
+                                Open QPBD Relay Bot
                               </a>
                             ) : (
                               <p className="text-gray-400 dark:text-zinc-500 italic">Enter phone above for your bot link.</p>
