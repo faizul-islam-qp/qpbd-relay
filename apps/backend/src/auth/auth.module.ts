@@ -8,12 +8,14 @@ import { JwtStrategy } from './strategies/jwt.strategy'
 import { UsersModule } from '../users/users.module'
 import { TelegramModule } from '../telegram/telegram.module'
 import { OtpEntry } from './entities/otp.entity'
+import { EmailModule } from '../email/email.module'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([OtpEntry]),
     UsersModule,
     TelegramModule,
+    EmailModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => ({

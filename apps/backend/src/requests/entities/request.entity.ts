@@ -27,7 +27,7 @@ export class Request {
   @Column({ name: 'employee_id' })
   employeeId: string
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'employee_id' })
   employee: User
 
@@ -53,7 +53,7 @@ export class Request {
   @Column({ nullable: true, name: 'assigned_to' })
   assignedTo: string
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'assigned_to' })
   assignee: User
 

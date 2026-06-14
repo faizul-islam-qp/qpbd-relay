@@ -20,6 +20,9 @@ export default function Login() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [emailOtpStep, setEmailOtpStep] = useState(false)
+  const [emailOtp, setEmailOtp] = useState('')
+  const [emailOtpInfo, setEmailOtpInfo] = useState('')
 
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
@@ -41,7 +44,7 @@ export default function Login() {
     retry: false,
   })
 
-  const reset = () => { setError(''); setOtpInfo('') }
+  const reset = () => { setError(''); setOtpInfo(''); setEmailOtpInfo('') }
 
   const telegramDeepLink = () => {
     if (!botInfo?.botUsername) return null
@@ -52,13 +55,29 @@ export default function Login() {
   const handleEmployeeSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); reset(); setLoading(true)
     try {
-      const data = empMode === 'login'
-        ? await authApi.login(email, password)
-        : await authApi.register(name, email, password)
+      if (empMode === 'login') {
+        const data = await authApi.login(email, password)
+        setAuth(data.user, data.access_token)
+        navigate(`/${data.user.role}`)
+      } else {
+        // Register step 1: send email OTP
+        const res = await authApi.sendEmailOtp(email)
+        setEmailOtpInfo(res.message + (res.debug_otp ? ` — dev code: ${res.debug_otp}` : ''))
+        setEmailOtpStep(true)
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed')
+    } finally { setLoading(false) }
+  }
+
+  const handleVerifyEmailOtp = async (e: React.FormEvent) => {
+    e.preventDefault(); reset(); setLoading(true)
+    try {
+      const data = await authApi.register(name, email, password, emailOtp)
       setAuth(data.user, data.access_token)
       navigate(`/${data.user.role}`)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed')
+      setError(err.response?.data?.message || 'Invalid code')
     } finally { setLoading(false) }
   }
 
@@ -110,7 +129,7 @@ export default function Login() {
             {(['employee', 'staff'] as Panel[]).map((p) => (
               <button
                 key={p}
-                onClick={() => { setPanel(p); reset() }}
+                onClick={() => { setPanel(p); setEmailOtpStep(false); setEmailOtp(''); reset() }}
                 className={cn(
                   'flex-1 py-3 text-sm font-medium transition-colors',
                   panel === p
@@ -131,7 +150,7 @@ export default function Login() {
                   {(['login', 'register'] as EmpMode[]).map((m) => (
                     <button
                       key={m}
-                      onClick={() => { setEmpMode(m); reset() }}
+                      onClick={() => { setEmpMode(m); setEmailOtpStep(false); setEmailOtp(''); reset() }}
                       className={cn(
                         'flex-1 py-1.5 rounded-md text-sm font-medium transition-colors capitalize',
                         empMode === m
@@ -144,28 +163,66 @@ export default function Login() {
                   ))}
                 </div>
 
-                <form onSubmit={handleEmployeeSubmit} className="space-y-4">
-                  {empMode === 'register' && (
+                {empMode === 'register' && emailOtpStep ? (
+                  <form onSubmit={handleVerifyEmailOtp} className="space-y-4">
+                    {emailOtpInfo && (
+                      <div className="text-xs bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 px-3 py-2 rounded-md border border-gray-200 dark:border-zinc-700">
+                        {emailOtpInfo}
+                      </div>
+                    )}
                     <div className="space-y-1.5">
-                      <Label>Full Name</Label>
-                      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+                      <Label>Verification Code</Label>
+                      <Input
+                        value={emailOtp}
+                        onChange={(e) => setEmailOtp(e.target.value)}
+                        placeholder="123456"
+                        maxLength={6}
+                        className="text-center text-xl tracking-[0.5em]"
+                        required
+                        autoFocus
+                      />
+                      <p className="text-xs text-gray-400 dark:text-zinc-500">Sent to {email}</p>
                     </div>
-                  )}
-                  <div className="space-y-1.5">
-                    <Label>Email</Label>
-                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@questionpro.com" required />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Password</Label>
-                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                  </div>
-                  {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">{error}</p>}
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Please wait…' : empMode === 'login' ? 'Login' : 'Create Account'}
-                  </Button>
-                  <p className="text-xs text-center text-gray-400 dark:text-zinc-500">Only @questionpro.com emails allowed</p>
-                </form>
+                    {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">{error}</p>}
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? 'Verifying…' : 'Verify & Create Account'}
+                    </Button>
+                    <button
+                      type="button"
+                      className="w-full text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                      onClick={() => { setEmailOtpStep(false); setEmailOtp(''); reset() }}
+                    >
+                      ← Change details
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleEmployeeSubmit} className="space-y-4">
+                    {empMode === 'register' && (
+                      <div className="space-y-1.5">
+                        <Label>Full Name</Label>
+                        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+                      </div>
+                    )}
+                    <div className="space-y-1.5">
+                      <Label>Email</Label>
+                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@questionpro.com" required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Password</Label>
+                      <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    </div>
+                    {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">{error}</p>}
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading
+                        ? 'Please wait…'
+                        : empMode === 'login'
+                          ? 'Login'
+                          : 'Send Verification Code'}
+                    </Button>
+                    <p className="text-xs text-center text-gray-400 dark:text-zinc-500">Only @questionpro.com emails allowed</p>
+                  </form>
+                )}
               </>
             )}
 

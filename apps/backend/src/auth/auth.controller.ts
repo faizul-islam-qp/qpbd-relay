@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { TelegramService } from '../telegram/telegram.service'
 import { LoginDto } from './dto/login.dto'
-import { RegisterDto } from './dto/register.dto'
+import { RegisterDto, SendEmailOtpDto } from './dto/register.dto'
 import { SendOtpDto, VerifyOtpDto } from './dto/otp.dto'
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard'
 import { GetUser } from '../common/decorators/get-user.decorator'
@@ -13,6 +13,11 @@ export class AuthController {
     private authService: AuthService,
     private telegramService: TelegramService,
   ) {}
+
+  @Post('register/email-otp')
+  sendEmailOtp(@Body() dto: SendEmailOtpDto) {
+    return this.authService.sendEmailOtp(dto.email)
+  }
 
   @Post('register')
   register(@Body() dto: RegisterDto) {

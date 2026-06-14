@@ -10,6 +10,7 @@ import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { OtpEntry } from './entities/otp.entity'
 import { TelegramService } from '../telegram/telegram.service'
+import { EmailService } from '../email/email.service'
 
 const OTP_TTL_MS = 5 * 60 * 1000   // 5 minutes
 const OTP_COOLDOWN_MS = 60 * 1000  // 1 minute
@@ -20,16 +21,48 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private telegramService: TelegramService,
+    private emailService: EmailService,
     @InjectRepository(OtpEntry) private otpRepo: Repository<OtpEntry>,
   ) {}
 
+  async sendEmailOtp(email: string) {
+    const existing = await this.usersService.findByEmail(email)
+    if (existing) throw new ConflictException('Email already registered')
+
+    const cooldownSince = new Date(Date.now() - OTP_COOLDOWN_MS)
+    const recent = await this.otpRepo.findOne({
+      where: { phone: email, createdAt: MoreThan(cooldownSince) },
+      order: { createdAt: 'DESC' },
+    })
+    if (recent) throw new BadRequestException('Please wait 60 seconds before requesting again')
+
+    await this.otpRepo.delete({ phone: email })
+
+    const code = crypto.randomInt(100000, 999999).toString()
+    const expiresAt = new Date(Date.now() + OTP_TTL_MS)
+    await this.otpRepo.save(this.otpRepo.create({ phone: email, code, expiresAt }))
+
+    const sent = await this.emailService.sendOtp(email, code)
+    console.log(`[Email OTP] ${email} | Code: ${code} | Sent: ${sent}`)
+
+    return {
+      message: sent ? 'Verification code sent to your email' : 'Email not configured — check console for code',
+      ...(process.env.NODE_ENV !== 'production' && { debug_otp: code }),
+    }
+  }
+
   async register(dto: RegisterDto) {
+    if (!dto.otp) throw new BadRequestException('Email verification required — send OTP first')
+
     const existing = await this.usersService.findByEmail(dto.email)
     if (existing) throw new ConflictException('Email already registered')
 
-    if (!dto.email.endsWith('@questionpro.com')) {
-      throw new BadRequestException('Only @questionpro.com emails allowed')
-    }
+    const entry = await this.otpRepo.findOne({
+      where: { phone: dto.email, code: dto.otp, expiresAt: MoreThan(new Date()) },
+    })
+    if (!entry) throw new UnauthorizedException('Invalid or expired verification code')
+
+    await this.otpRepo.delete({ phone: dto.email })
 
     const passwordHash = await bcrypt.hash(dto.password, 10)
     const user = await this.usersService.create({

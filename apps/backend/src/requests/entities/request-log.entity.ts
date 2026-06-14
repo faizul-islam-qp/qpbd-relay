@@ -14,10 +14,10 @@ export class RequestLog {
   @JoinColumn({ name: 'request_id' })
   request: Request
 
-  @Column({ name: 'actor_id' })
-  actorId: string
+  @Column({ name: 'actor_id', nullable: true })
+  actorId: string | null
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'actor_id' })
   actor: User
 
