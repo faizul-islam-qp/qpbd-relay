@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { notificationsApi } from '@/api/notifications'
+import { useAuthStore } from '@/store/auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
@@ -10,6 +12,15 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const qc = useQueryClient()
   const panelRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
+
+  function notifUrl(n: any): string | null {
+    if (!n.requestId) return null
+    if (user?.role === 'staff') return '/staff'
+    if (user?.role === 'admin') return `/admin/my-requests/${n.requestId}`
+    return `/employee/${n.requestId}`
+  }
 
   const { data: countData } = useQuery({
     queryKey: ['notifications', 'count'],
@@ -67,15 +78,33 @@ export function NotificationBell() {
                   <p>All caught up!</p>
                 </div>
               )}
-              {items.map((n: any) => (
-                <div key={n.id} className={cn('px-4 py-3 text-sm', !n.isRead && 'bg-primary/5')}>
-                  <p className="font-medium leading-tight">{n.title}</p>
-                  {n.body && <p className="text-muted-foreground text-xs mt-0.5">{n.body}</p>}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                  </p>
-                </div>
-              ))}
+              {items.map((n: any) => {
+                const url = notifUrl(n)
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => {
+                      if (!n.isRead) {
+                        notificationsApi.markRead(n.id).then(() => {
+                          qc.invalidateQueries({ queryKey: ['notifications'] })
+                        })
+                      }
+                      if (url) { setOpen(false); navigate(url) }
+                    }}
+                    className={cn(
+                      'px-4 py-3 text-sm',
+                      !n.isRead && 'bg-primary/5',
+                      url ? 'cursor-pointer hover:bg-muted/50 transition-colors' : '',
+                    )}
+                  >
+                    <p className="font-medium leading-tight">{n.title}</p>
+                    {n.body && <p className="text-muted-foreground text-xs mt-0.5">{n.body}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </>

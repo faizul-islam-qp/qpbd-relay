@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, In } from 'typeorm'
 import { Request, RequestStatus, RequestPriority } from './entities/request.entity'
 import { RequestLog } from './entities/request-log.entity'
+import { RequestComment } from './entities/request-comment.entity'
 import { CreateRequestDto } from './dto/create-request.dto'
 import { UpdateRequestDto } from './dto/update-request.dto'
 import { EventsGateway } from '../events/events.gateway'
@@ -15,6 +16,7 @@ export class RequestsService {
   constructor(
     @InjectRepository(Request) private repo: Repository<Request>,
     @InjectRepository(RequestLog) private logRepo: Repository<RequestLog>,
+    @InjectRepository(RequestComment) private commentRepo: Repository<RequestComment>,
     @InjectRepository(User) private userRepo: Repository<User>,
     private eventsGateway: EventsGateway,
     private pushService: PushService,
@@ -146,7 +148,7 @@ export class RequestsService {
       req.employeeId,
       `Request ${statusLabel}`,
       `"${req.title}" — ${statusLabel}`,
-      `/employee/requests/${id}`,
+      `/employee/${id}`,
     )
 
     return updated
@@ -205,5 +207,45 @@ export class RequestsService {
     })
 
     return updated
+  }
+
+  async getComments(requestId: string) {
+    return this.commentRepo.find({
+      where: { requestId },
+      relations: ['author'],
+      order: { createdAt: 'ASC' },
+    })
+  }
+
+  async addComment(requestId: string, authorId: string, content: string) {
+    const req = await this.repo.findOne({ where: { id: requestId } })
+    if (!req) throw new NotFoundException('Request not found')
+
+    const comment = this.commentRepo.create({ requestId, authorId, content })
+    const saved = await this.commentRepo.save(comment)
+    const full = await this.commentRepo.findOne({ where: { id: saved.id }, relations: ['author'] })
+
+    // Notify other parties
+    const notifyIds: string[] = []
+    if (authorId !== req.employeeId) notifyIds.push(req.employeeId)
+    if (req.assignedTo && authorId !== req.assignedTo) notifyIds.push(req.assignedTo)
+
+    if (notifyIds.length) {
+      const users = await this.userRepo.findByIds(notifyIds)
+      const title = `New comment by ${full.author?.name ?? 'someone'}`
+      const body = content.length > 80 ? content.slice(0, 80) + '…' : content
+
+      for (const u of users) {
+        await this.notificationsService.create(u.id, { requestId, title, body })
+        const url = u.role === UserRole.STAFF ? '/staff'
+          : u.role === UserRole.ADMIN ? `/admin/my-requests/${requestId}`
+          : `/employee/${requestId}`
+        await this.pushService.notifyUser(u.id, title, body, url)
+      }
+    }
+
+    this.eventsGateway.emitCommentAdded(requestId, authorId, req.employeeId, req.assignedTo)
+
+    return full
   }
 }

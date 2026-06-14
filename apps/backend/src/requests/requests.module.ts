@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Request } from './entities/request.entity'
 import { RequestLog } from './entities/request-log.entity'
+import { RequestComment } from './entities/request-comment.entity'
 import { User } from '../users/entities/user.entity'
 import { RequestsService } from './requests.service'
 import { RequestsController } from './requests.controller'
@@ -11,7 +12,7 @@ import { NotificationsModule } from '../notifications/notifications.module'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Request, RequestLog, User]),
+    TypeOrmModule.forFeature([Request, RequestLog, RequestComment, User]),
     forwardRef(() => EventsModule),
     forwardRef(() => PushModule),
     NotificationsModule,

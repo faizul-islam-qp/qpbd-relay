@@ -43,4 +43,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to('role:staff').emit('request:updated', request)
     this.server.to('role:admin').emit('request:updated', request)
   }
+
+  emitCommentAdded(requestId: string, authorId: string, employeeId: string, assignedTo: string | null) {
+    const payload = { requestId, authorId }
+    this.server.to(`user:${employeeId}`).emit('comment:new', payload)
+    if (assignedTo) this.server.to(`user:${assignedTo}`).emit('comment:new', payload)
+    this.server.to('role:admin').emit('comment:new', payload)
+  }
 }

@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { RequestComments } from '@/components/common/RequestComments'
+import { MessageSquare } from 'lucide-react'
+import { useUnreadComments } from '@/store/unreadComments'
 
 const STATUSES = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'DONE', 'REJECTED', 'CANCELLED']
 const DONE_STATUSES = ['DONE', 'REJECTED', 'CANCELLED']
@@ -16,6 +19,8 @@ export default function AdminRequests() {
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
   const [reassigning, setReassigning] = useState<string | null>(null)
+  const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
+  const unreadComments = useUnreadComments((s) => s.unread)
 
   const { data, isLoading } = useQuery({
     queryKey: ['requests', 'admin', statusFilter],
@@ -110,6 +115,22 @@ export default function AdminRequests() {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={() => setOpenComments((p) => ({ ...p, [req.id]: !p[req.id] }))}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Comments
+                  {unreadComments[req.id] && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
+                </button>
+              </div>
+              {openComments[req.id] && (
+                <div className="mt-3 pt-3 border-t">
+                  <RequestComments requestId={req.id} compact />
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Pencil, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
+import { RequestComments } from '@/components/common/RequestComments'
 
 const PRIORITIES = [
   { value: 'LOW', label: '🟢 Low' },
@@ -194,6 +195,13 @@ export default function EmployeeRequestDetail() {
             </CardContent>
           </Card>
         )}
+
+        {/* Comments */}
+        <Card>
+          <CardContent className="pt-5">
+            <RequestComments requestId={id!} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

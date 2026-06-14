@@ -1,16 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { requestsApi } from '@/api/requests'
 import { useAuthStore } from '@/store/auth'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { PriorityBadge } from '@/components/common/PriorityBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { PlusCircle, Clock } from 'lucide-react'
+import { PlusCircle, Clock, MessageSquare } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { RequestComments } from '@/components/common/RequestComments'
+import { useUnreadComments } from '@/store/unreadComments'
 
 export default function EmployeeDashboard() {
   const { user } = useAuthStore()
+  const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
+  const unreadComments = useUnreadComments((s) => s.unread)
   const myRequestsBase = user?.role === 'admin' ? '/admin/my-requests' : '/employee'
   const listParams = user?.role === 'admin' ? { mine: 'true' } : undefined
   const { data, isLoading } = useQuery({
@@ -52,9 +57,9 @@ export default function EmployeeDashboard() {
 
       <div className="space-y-3">
         {requests.map((req: any) => (
-          <Link key={req.id} to={`${myRequestsBase}/${req.id}`}>
-            <Card className="hover:shadow-md transition-shadow active:scale-[0.99] cursor-pointer">
-              <CardContent className="p-4">
+          <Card key={req.id}>
+            <CardContent className="p-4">
+              <Link to={`${myRequestsBase}/${req.id}`} className="block">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-2xl flex-shrink-0">{req.category?.icon}</span>
@@ -68,14 +73,29 @@ export default function EmployeeDashboard() {
                     <PriorityBadge priority={req.priority} />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+              </Link>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
                   {req.assignee && <span className="ml-2">· {req.assignee.name}</span>}
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
+                <button
+                  onClick={() => setOpenComments((p) => ({ ...p, [req.id]: !p[req.id] }))}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Comments
+                  {unreadComments[req.id] && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
+                </button>
+              </div>
+              {openComments[req.id] && (
+                <div className="mt-3 pt-3 border-t">
+                  <RequestComments requestId={req.id} compact />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

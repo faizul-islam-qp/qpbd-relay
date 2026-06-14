@@ -57,4 +57,14 @@ export class RequestsController {
   assign(@Param('id') id: string, @GetUser() user: any, @Body() dto: AssignDto) {
     return this.service.assign(id, user, dto.staffId)
   }
+
+  @Get(':id/comments')
+  getComments(@Param('id') id: string) {
+    return this.service.getComments(id)
+  }
+
+  @Post(':id/comments')
+  addComment(@Param('id') id: string, @GetUser() user: any, @Body() dto: { content: string }) {
+    return this.service.addComment(id, user.id, dto.content)
+  }
 }

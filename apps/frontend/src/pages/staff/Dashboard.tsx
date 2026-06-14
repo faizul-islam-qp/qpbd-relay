@@ -6,9 +6,11 @@ import { PriorityBadge } from '@/components/common/PriorityBadge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Clock, CheckCircle, XCircle, Play, UserCheck } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, Play, UserCheck, MessageSquare } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useAuthStore } from '@/store/auth'
+import { RequestComments } from '@/components/common/RequestComments'
+import { useUnreadComments } from '@/store/unreadComments'
 
 const STATUS_ACTIONS: Record<string, { next: string; label: string; icon: any; variant: any }[]> = {
   PENDING:     [{ next: 'ASSIGNED',    label: 'Accept',   icon: UserCheck,    variant: 'default' }],
@@ -25,6 +27,8 @@ export default function StaffDashboard() {
   const { user } = useAuthStore()
   const qc = useQueryClient()
   const [rejectNote, setRejectNote] = useState<Record<string, string>>({})
+  const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
+  const unreadComments = useUnreadComments((s) => s.unread)
   const [filter, setFilter] = useState<Filter>('active')
 
   const { data, isLoading } = useQuery({
@@ -112,9 +116,19 @@ export default function StaffDashboard() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
+                  </div>
+                  <button
+                    onClick={() => setOpenComments((p) => ({ ...p, [req.id]: !p[req.id] }))}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Comments
+                    {unreadComments[req.id] && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
+                  </button>
                 </div>
 
                 {actions.length > 0 && (
@@ -144,6 +158,12 @@ export default function StaffDashboard() {
                         )
                       })}
                     </div>
+                  </div>
+                )}
+
+                {openComments[req.id] && (
+                  <div className="mt-3 pt-3 border-t">
+                    <RequestComments requestId={req.id} compact />
                   </div>
                 )}
               </CardContent>

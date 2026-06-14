@@ -53,7 +53,7 @@ export class PushService implements OnModuleInit {
     const payload = JSON.stringify({
       title: `New Request: ${request.title}`,
       body: `${request.category?.icon || ''} ${request.category?.name || ''} — ${request.priority}`,
-      url: `/staff/requests/${request.id}`,
+      url: `/staff`,
       icon: '/icons/icon-192.png',
     })
 

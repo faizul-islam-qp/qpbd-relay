@@ -21,4 +21,10 @@ export const requestsApi = {
 
   assign: (id: string, staffId: string) =>
     api.patch(`/requests/${id}/assign`, { staffId }).then((r) => r.data),
+
+  getComments: (id: string) =>
+    api.get(`/requests/${id}/comments`).then((r) => r.data),
+
+  addComment: (id: string, content: string) =>
+    api.post(`/requests/${id}/comments`, { content }).then((r) => r.data),
 }
