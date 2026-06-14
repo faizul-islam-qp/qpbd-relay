@@ -1,0 +1,14 @@
+import { IsEmail, IsString, MinLength, Matches } from 'class-validator'
+
+export class RegisterDto {
+  @IsString()
+  name: string
+
+  @IsEmail()
+  @Matches(/@questionpro\.com$/, { message: 'Only @questionpro.com email addresses allowed' })
+  email: string
+
+  @IsString()
+  @MinLength(6)
+  password: string
+}
