@@ -12,7 +12,6 @@ restart:
 
 clean:
 	docker compose -f docker-compose.prod.yml down --volumes --rmi all
-	docker system prune -f
 
 logs:
 	docker compose -f docker-compose.prod.yml logs -f
