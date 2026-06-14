@@ -11,6 +11,7 @@ import CreateRequest from '@/pages/employee/CreateRequest'
 import EmployeeRequestDetail from '@/pages/employee/RequestDetail'
 
 import StaffDashboard from '@/pages/staff/Dashboard'
+import StaffRequestDetail from '@/pages/staff/RequestDetail'
 
 import AdminDashboard from '@/pages/admin/Dashboard'
 import AdminUsers from '@/pages/admin/Users'
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/employee/requests/:id" element={<RequireRole role="employee"><EmployeeRequestDetail /></RequireRole>} />
 
           <Route path="/staff" element={<RequireRole role="staff"><StaffDashboard /></RequireRole>} />
+          <Route path="/staff/:id" element={<RequireRole role="staff"><StaffRequestDetail /></RequireRole>} />
 
           <Route path="/admin" element={<RequireRole role="admin"><AdminDashboard /></RequireRole>} />
           <Route path="/admin/users" element={<RequireRole role="admin"><AdminUsers /></RequireRole>} />

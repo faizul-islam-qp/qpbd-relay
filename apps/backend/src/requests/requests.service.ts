@@ -237,7 +237,7 @@ export class RequestsService {
 
       for (const u of users) {
         await this.notificationsService.create(u.id, { requestId, title, body })
-        const url = u.role === UserRole.STAFF ? '/staff'
+        const url = u.role === UserRole.STAFF ? `/staff/${requestId}`
           : u.role === UserRole.ADMIN ? `/admin/my-requests/${requestId}`
           : `/employee/${requestId}`
         await this.pushService.notifyUser(u.id, title, body, url)

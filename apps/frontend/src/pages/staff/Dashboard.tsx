@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Clock, CheckCircle, XCircle, Play, UserCheck, MessageSquare, RotateCcw } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useAuthStore } from '@/store/auth'
-import { RequestComments } from '@/components/common/RequestComments'
 import { useUnreadComments } from '@/store/unreadComments'
+import { Link } from 'react-router-dom'
 
 const STATUS_ACTIONS: Record<string, { next: string; label: string; icon: any; variant: any }[]> = {
   PENDING:     [{ next: 'ASSIGNED',    label: 'Accept',   icon: UserCheck,    variant: 'default' }],
@@ -36,7 +36,6 @@ export default function StaffDashboard() {
   const { user } = useAuthStore()
   const qc = useQueryClient()
   const [rejectNote, setRejectNote] = useState<Record<string, string>>({})
-  const [openComments, setOpenComments] = useState<Record<string, boolean>>({})
   const unreadComments = useUnreadComments((s) => s.unread)
   const [filter, setFilter] = useState<Filter>('active')
 
@@ -111,37 +110,34 @@ export default function StaffDashboard() {
           return (
             <Card key={req.id} className={isUrgent ? 'border-red-300 dark:border-red-800' : ''}>
               <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-2xl flex-shrink-0">{req.category?.icon}</span>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{req.title}</p>
-                      <p className="text-xs text-muted-foreground">{req.employee?.name} · {req.category?.name}</p>
-                      {req.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{req.description}</p>
-                      )}
+                <Link to={`/staff/${req.id}`} className="block">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-2xl flex-shrink-0">{req.category?.icon}</span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{req.title}</p>
+                        <p className="text-xs text-muted-foreground">{req.employee?.name} · {req.category?.name}</p>
+                        {req.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{req.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <StatusBadge status={req.status} />
+                      <PriorityBadge priority={req.priority} />
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <StatusBadge status={req.status} />
-                    <PriorityBadge priority={req.priority} />
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      {unreadComments[req.id] && <span className="w-2 h-2 rounded-full bg-red-500" />}
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
-                  </div>
-                  <button
-                    onClick={() => setOpenComments((p) => ({ ...p, [req.id]: !p[req.id] }))}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    Comments
-                    {unreadComments[req.id] && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
-                  </button>
-                </div>
+                </Link>
 
                 {actions.length > 0 && (
                   <div className="mt-3 pt-3 border-t space-y-2">
@@ -170,12 +166,6 @@ export default function StaffDashboard() {
                         )
                       })}
                     </div>
-                  </div>
-                )}
-
-                {openComments[req.id] && (
-                  <div className="mt-3 pt-3 border-t">
-                    <RequestComments requestId={req.id} compact />
                   </div>
                 )}
               </CardContent>
