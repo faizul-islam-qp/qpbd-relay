@@ -1,49 +1,57 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
-import * as nodemailer from 'nodemailer'
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import * as nodemailer from "nodemailer";
 
 @Injectable()
 export class EmailService implements OnModuleInit {
-  private transporter: nodemailer.Transporter | null = null
-  private readonly logger = new Logger(EmailService.name)
+  private transporter: nodemailer.Transporter | null = null;
+  private readonly logger = new Logger(EmailService.name);
 
   onModuleInit() {
-    const host = process.env.SMTP_HOST
-    const user = process.env.SMTP_USER
-    const pass = process.env.SMTP_PASS
+    const host = process.env.SMTP_HOST;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
 
     if (!host || !user || !pass) {
-      this.logger.warn('SMTP not configured — email OTP will be logged to console only')
-      return
+      this.logger.warn(
+        "SMTP not configured — email OTP will be logged to console only",
+      );
+      return;
     }
 
-    const port = parseInt(process.env.SMTP_PORT || '587')
-    const secure = process.env.SMTP_SECURE === 'true' || port === 465
+    const port = parseInt(process.env.SMTP_PORT || "587");
+    const secure = process.env.SMTP_SECURE === "true" || port === 465;
 
     this.transporter = nodemailer.createTransport({
       host,
       port,
       secure,
       auth: { user, pass },
-    })
+    });
 
-    this.transporter.verify().then(() => {
-      this.logger.log(`SMTP ready — ${user} via ${host}:${port}`)
-    }).catch((e) => {
-      this.logger.error('SMTP verify failed — email OTP will fall back to console', e.message)
-      this.transporter = null
-    })
+    this.transporter
+      .verify()
+      .then(() => {
+        this.logger.log(`SMTP ready — ${user} via ${host}:${port}`);
+      })
+      .catch((e) => {
+        this.logger.error(
+          "SMTP verify failed — email OTP will fall back to console",
+          e.message,
+        );
+        this.transporter = null;
+      });
   }
 
   async sendOtp(to: string, otp: string): Promise<boolean> {
-    if (!this.transporter) return false
+    if (!this.transporter) return false;
 
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER
+    const from = process.env.SMTP_USER;
 
     try {
       await this.transporter.sendMail({
         from,
         to,
-        subject: 'Wick Office — Email Verification Code',
+        subject: "Wick Office — Email Verification Code",
         text: `Your verification code is: ${otp}\n\nThis code expires in 5 minutes. Do not share it.`,
         html: `
           <div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:24px">
@@ -56,15 +64,15 @@ export class EmailService implements OnModuleInit {
             <p style="color:#999;font-size:12px;margin:16px 0 0">Expires in 5 minutes. Do not share this code.</p>
           </div>
         `,
-      })
-      return true
+      });
+      return true;
     } catch (e: any) {
-      this.logger.error(`Failed to send email OTP to ${to}`, e.message)
-      return false
+      this.logger.error(`Failed to send email OTP to ${to}`, e.message);
+      return false;
     }
   }
 
   isConfigured(): boolean {
-    return !!this.transporter
+    return !!this.transporter;
   }
 }
