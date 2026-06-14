@@ -43,7 +43,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         const chatId = String(msg.chat.id);
         const param = match?.[1]?.trim();
 
-        this.logger.log(`/start — chatId: ${chatId} param: ${param ?? '(none)'}`);
+        this.logger.log(`/start received — param: ${param ? 'yes' : 'none'}`);
 
         if (param) {
           await this.linkPhone(chatId, param);
@@ -63,7 +63,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         // Only handle if looks like a phone number
         if (!/^\+?\d{7,15}$/.test(text)) return;
         const chatId = String(msg.chat.id);
-        this.logger.log(`Phone message — chatId: ${chatId} text: ${text}`);
+        this.logger.log(`Phone number message received, attempting link`);
         await this.linkPhone(chatId, text);
       });
 
@@ -110,9 +110,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           `✅ *Wick Office*\n\nAccount linked for *${user.name}*!\nYou'll receive OTP codes here when you log in.`,
           { parse_mode: "Markdown" },
         );
-        this.logger.log(`Chat ID ${chatId} linked to staff ${phone}`);
+        this.logger.log(`Staff account linked via Telegram`);
       } else {
-        this.logger.warn(`linkPhone: no staff found for phone ${phone}`);
+        this.logger.warn(`linkPhone: no staff found for given phone`);
         await this.bot.sendMessage(
           chatId,
           `⚠️ Phone number *${phone}* not found in the system.\nAsk your admin to add your account first.`,
@@ -151,7 +151,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       );
       return true;
     } catch (e) {
-      this.logger.error(`Failed to send Telegram OTP to ${chatId}`, e);
+      this.logger.error(`Failed to send Telegram OTP`, e);
       return false;
     }
   }

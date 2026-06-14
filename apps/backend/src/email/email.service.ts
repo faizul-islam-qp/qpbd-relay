@@ -67,7 +67,7 @@ export class EmailService implements OnModuleInit {
       });
       return true;
     } catch (e: any) {
-      this.logger.error(`Failed to send email OTP to ${to}`, e.message);
+      this.logger.error(`Failed to send email OTP`, e.message);
       return false;
     }
   }

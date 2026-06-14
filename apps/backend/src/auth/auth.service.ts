@@ -50,7 +50,6 @@ export class AuthService {
     await this.otpRepo.save(this.otpRepo.create({ phone: email, code, expiresAt }))
 
     const sent = await this.emailService.sendOtp(email, code)
-    console.log(`[Email OTP] ${email} | Code: ${code} | Sent: ${sent}`)
 
     return {
       message: sent ? 'Verification code sent to your email' : 'Email not configured — check console for code',
@@ -138,8 +137,6 @@ export class AuthService {
     const botReady = this.telegramService.isBotConfigured()
     const hasChatId = !!user.telegramChatId
     const sent = await this.telegramService.sendOtp(user.telegramChatId, code)
-
-    console.log(`[OTP] Phone: ${phone} | Code: ${code} | Bot: ${botReady} | ChatId: ${hasChatId} | Sent: ${sent}`)
 
     let message: string
     if (sent) {
