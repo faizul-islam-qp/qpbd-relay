@@ -110,6 +110,67 @@ export class AuthService {
     return { success: true }
   }
 
+  async forgotPassword(identifier: string) {
+    const isEmail = identifier.includes('@')
+    const key = isEmail ? identifier.trim().toLowerCase() : normalizePhone(identifier)
+
+    const cooldownSince = new Date(Date.now() - OTP_COOLDOWN_MS)
+    const recent = await this.otpRepo.findOne({
+      where: { phone: key, createdAt: MoreThan(cooldownSince) },
+      order: { createdAt: 'DESC' },
+    })
+    if (recent) throw new BadRequestException('Please wait 60 seconds before requesting again')
+
+    await this.otpRepo.delete({ phone: key })
+    const code = crypto.randomInt(100000, 999999).toString()
+    const expiresAt = new Date(Date.now() + OTP_TTL_MS)
+    await this.otpRepo.save(this.otpRepo.create({ phone: key, code, expiresAt }))
+
+    if (isEmail) {
+      const user = await this.usersService.findByEmail(key)
+      if (!user || !user.isActive) {
+        // Don't reveal if account exists
+        return { message: 'If this account exists, a reset code has been sent to your email' }
+      }
+      await this.emailService.sendOtp(key, code)
+      return {
+        message: 'Password reset code sent to your email',
+        ...(process.env.NODE_ENV !== 'production' && { debug_otp: code }),
+      }
+    } else {
+      const user = await this.usersService.findByPhone(key)
+      if (!user || !user.isActive) {
+        return { message: 'If this account exists, a reset code has been sent via Telegram' }
+      }
+      await this.telegramService.sendOtp(user.telegramChatId, code)
+      return {
+        message: user.telegramChatId ? 'Password reset code sent via Telegram' : 'Telegram not linked — check console',
+        ...(process.env.NODE_ENV !== 'production' && { debug_otp: code }),
+      }
+    }
+  }
+
+  async resetPassword(identifier: string, otp: string, newPassword: string) {
+    const isEmail = identifier.includes('@')
+    const key = isEmail ? identifier.trim().toLowerCase() : normalizePhone(identifier)
+
+    const entry = await this.otpRepo.findOne({
+      where: { phone: key, code: otp, expiresAt: MoreThan(new Date()) },
+    })
+    if (!entry) throw new UnauthorizedException('Invalid or expired code')
+
+    await this.otpRepo.delete({ phone: key })
+
+    const user = isEmail
+      ? await this.usersService.findByEmail(key)
+      : await this.usersService.findByPhone(key)
+    if (!user) throw new UnauthorizedException('Account not found')
+
+    const passwordHash = await bcrypt.hash(newPassword, 10)
+    await this.usersService.updatePassword(user.id, passwordHash)
+    return { success: true }
+  }
+
   async sendOtp(phone: string) {
     const normalized = normalizePhone(phone)
     phone = normalized

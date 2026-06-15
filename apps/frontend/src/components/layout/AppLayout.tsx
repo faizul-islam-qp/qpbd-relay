@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Outlet, Navigate } from 'react-router-dom'
-import { Moon, Sun, BellOff, BellX } from 'lucide-react'
+import { Moon, Sun, BellOff, BellMinus } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useThemeStore } from '@/store/theme'
 import { DesktopSidebar } from './DesktopSidebar'
@@ -54,7 +54,7 @@ export function AppLayout() {
                 onClick={() => alert('Notifications are blocked.\n\nTo enable: click the lock/info icon in the address bar → Site settings → Notifications → Allow.')}
                 title="Notifications blocked — click for instructions"
               >
-                <BellX className="h-4 w-4" />
+                <BellMinus className="h-4 w-4" />
               </Button>
             )}
             <NotificationBell />

@@ -11,9 +11,10 @@ import { cn } from '@/lib/utils'
 import { Moon, Sun, ExternalLink } from 'lucide-react'
 
 type Panel = 'employee' | 'staff'
-type EmpMode = 'login' | 'register'
+type EmpMode = 'login' | 'register' | 'forgot'
 type StaffMode = 'otp' | 'password'
 type StaffStep = 'form' | 'otp' | 'set-password'
+type ForgotStep = 'send' | 'verify' | 'done'
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -44,6 +45,15 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pendingToken, setPendingToken] = useState<{ user: any; access_token: string } | null>(null)
 
+  // Forgot password state (shared between panels)
+  const [staffForgot, setStaffForgot] = useState(false)
+  const [forgotStep, setForgotStep] = useState<ForgotStep>('send')
+  const [forgotIdentifier, setForgotIdentifier] = useState('')
+  const [forgotOtp, setForgotOtp] = useState('')
+  const [forgotNewPassword, setForgotNewPassword] = useState('')
+  const [forgotConfirm, setForgotConfirm] = useState('')
+  const [forgotInfo, setForgotInfo] = useState('')
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -59,7 +69,35 @@ export default function Login() {
     retry: false,
   })
 
-  const reset = () => { setError(''); setOtpInfo(''); setEmailOtpInfo('') }
+  const reset = () => { setError(''); setOtpInfo(''); setEmailOtpInfo(''); setForgotInfo('') }
+
+  const resetForgot = () => {
+    setForgotStep('send'); setForgotOtp(''); setForgotNewPassword(''); setForgotConfirm(''); setForgotInfo(''); reset()
+  }
+
+  const handleForgotSend = async (e: React.FormEvent) => {
+    e.preventDefault(); reset(); setLoading(true)
+    try {
+      const res = await authApi.forgotPassword(forgotIdentifier)
+      setForgotInfo(res.message + (res.debug_otp ? ` — dev code: ${res.debug_otp}` : ''))
+      setForgotStep('verify')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send code')
+    } finally { setLoading(false) }
+  }
+
+  const handleForgotReset = async (e: React.FormEvent) => {
+    e.preventDefault(); reset()
+    if (forgotNewPassword !== forgotConfirm) { setError('Passwords do not match'); return }
+    if (forgotNewPassword.length < 6) { setError('Minimum 6 characters'); return }
+    setLoading(true)
+    try {
+      await authApi.resetPassword(forgotIdentifier, forgotOtp, forgotNewPassword)
+      setForgotStep('done')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to reset password')
+    } finally { setLoading(false) }
+  }
 
   const telegramDeepLink = () => {
     if (!botInfo?.botUsername) return null
@@ -185,7 +223,7 @@ export default function Login() {
             {(['employee', 'staff'] as Panel[]).map((p) => (
               <button
                 key={p}
-                onClick={() => { setPanel(p); setEmailOtpStep(false); setEmailOtp(''); setOtpStep(false); setStaffStep('form'); reset() }}
+                onClick={() => { setPanel(p); setEmailOtpStep(false); setEmailOtp(''); setOtpStep(false); setStaffStep('form'); setEmpMode('login'); setStaffForgot(false); resetForgot() }}
                 className={cn(
                   'flex-1 py-3 text-sm font-medium transition-colors',
                   panel === p
@@ -202,11 +240,11 @@ export default function Login() {
             {/* ── Employee / Admin ── */}
             {panel === 'employee' && (
               <>
-                <div className="flex gap-1 mb-5 bg-gray-100 dark:bg-zinc-900 p-1 rounded-lg">
+                <div className={cn('flex gap-1 mb-5 bg-gray-100 dark:bg-zinc-900 p-1 rounded-lg', empMode === 'forgot' && 'hidden')}>
                   {(['login', 'register'] as EmpMode[]).map((m) => (
                     <button
                       key={m}
-                      onClick={() => { setEmpMode(m); setEmailOtpStep(false); setEmailOtp(''); reset() }}
+                      onClick={() => { setEmpMode(m as EmpMode); setEmailOtpStep(false); setEmailOtp(''); reset() }}
                       className={cn(
                         'flex-1 py-1.5 rounded-md text-sm font-medium transition-colors capitalize',
                         empMode === m
@@ -219,7 +257,45 @@ export default function Login() {
                   ))}
                 </div>
 
-                {empMode === 'register' && emailOtpStep ? (
+                {empMode === 'forgot' ? (
+                  forgotStep === 'done' ? (
+                    <div className="space-y-4 text-center">
+                      <div className="text-4xl">✅</div>
+                      <p className="text-sm font-medium text-green-600 dark:text-green-400">Password updated!</p>
+                      <Button className="w-full" onClick={() => { setEmpMode('login'); resetForgot() }}>Back to Login</Button>
+                    </div>
+                  ) : forgotStep === 'verify' ? (
+                    <form onSubmit={handleForgotReset} className="space-y-4">
+                      {forgotInfo && <div className="text-xs bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 px-3 py-2 rounded-md border border-gray-200 dark:border-zinc-700">{forgotInfo}</div>}
+                      <div className="space-y-1.5">
+                        <Label>Reset Code</Label>
+                        <Input value={forgotOtp} onChange={(e) => setForgotOtp(e.target.value)} placeholder="123456" maxLength={6} className="text-center text-xl tracking-[0.5em]" required autoFocus />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>New Password</Label>
+                        <Input type="password" value={forgotNewPassword} onChange={(e) => setForgotNewPassword(e.target.value)} placeholder="Min 6 characters" required />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Confirm Password</Label>
+                        <Input type="password" value={forgotConfirm} onChange={(e) => setForgotConfirm(e.target.value)} placeholder="Repeat password" required />
+                      </div>
+                      {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">{error}</p>}
+                      <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Saving…' : 'Set New Password'}</Button>
+                      <button type="button" className="w-full text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors" onClick={() => { setForgotStep('send'); reset() }}>← Re-send code</button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleForgotSend} className="space-y-4">
+                      <p className="text-sm text-gray-500 dark:text-zinc-400">Enter your email — we'll send a reset code.</p>
+                      <div className="space-y-1.5">
+                        <Label>Email</Label>
+                        <Input type="email" value={forgotIdentifier} onChange={(e) => setForgotIdentifier(e.target.value)} placeholder="you@questionpro.com" required autoFocus />
+                      </div>
+                      {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">{error}</p>}
+                      <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Sending…' : 'Send Reset Code'}</Button>
+                      <button type="button" className="w-full text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors" onClick={() => { setEmpMode('login'); resetForgot() }}>← Back to login</button>
+                    </form>
+                  )
+                ) : empMode === 'register' && emailOtpStep ? (
                   <form onSubmit={handleVerifyEmailOtp} className="space-y-4">
                     {emailOtpInfo && (
                       <div className="text-xs bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 px-3 py-2 rounded-md border border-gray-200 dark:border-zinc-700">
@@ -276,6 +352,12 @@ export default function Login() {
                           ? 'Login'
                           : 'Send Verification Code'}
                     </Button>
+                    {empMode === 'login' && (
+                      <button type="button" className="w-full text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                        onClick={() => { setEmpMode('forgot'); setForgotIdentifier(email); resetForgot() }}>
+                        Forgot password?
+                      </button>
+                    )}
                     <p className="text-xs text-center text-gray-400 dark:text-zinc-500">Only @questionpro.com emails allowed</p>
                   </form>
                 )}
@@ -325,7 +407,7 @@ export default function Login() {
                     </div>
 
                     {/* Password login */}
-                    {staffMode === 'password' && (
+                    {staffMode === 'password' && !staffForgot && (
                       <form onSubmit={handleStaffPasswordLogin} className="space-y-4">
                         <div className="space-y-1.5">
                           <Label>Phone Number</Label>
@@ -339,8 +421,53 @@ export default function Login() {
                         <Button type="submit" className="w-full" disabled={loading}>
                           {loading ? 'Logging in…' : 'Login'}
                         </Button>
+                        <button type="button" className="w-full text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                          onClick={() => { setStaffForgot(true); setForgotIdentifier(phone); resetForgot() }}>
+                          Forgot password?
+                        </button>
                         <p className="text-xs text-center text-gray-400 dark:text-zinc-500">No password? Use OTP login first to set one.</p>
                       </form>
+                    )}
+
+                    {/* Staff forgot password */}
+                    {staffMode === 'password' && staffForgot && (
+                      forgotStep === 'done' ? (
+                        <div className="space-y-4 text-center">
+                          <div className="text-4xl">✅</div>
+                          <p className="text-sm font-medium text-green-600 dark:text-green-400">Password updated!</p>
+                          <Button className="w-full" onClick={() => { setStaffForgot(false); resetForgot() }}>Back to Login</Button>
+                        </div>
+                      ) : forgotStep === 'verify' ? (
+                        <form onSubmit={handleForgotReset} className="space-y-4">
+                          {forgotInfo && <div className="text-xs bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 px-3 py-2 rounded-md border border-gray-200 dark:border-zinc-700">{forgotInfo}</div>}
+                          <div className="space-y-1.5">
+                            <Label>Reset Code</Label>
+                            <Input value={forgotOtp} onChange={(e) => setForgotOtp(e.target.value)} placeholder="123456" maxLength={6} className="text-center text-xl tracking-[0.5em]" required autoFocus />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>New Password</Label>
+                            <Input type="password" value={forgotNewPassword} onChange={(e) => setForgotNewPassword(e.target.value)} placeholder="Min 6 characters" required />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Confirm Password</Label>
+                            <Input type="password" value={forgotConfirm} onChange={(e) => setForgotConfirm(e.target.value)} placeholder="Repeat password" required />
+                          </div>
+                          {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">{error}</p>}
+                          <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Saving…' : 'Set New Password'}</Button>
+                          <button type="button" className="w-full text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors" onClick={() => { setForgotStep('send'); reset() }}>← Re-send code</button>
+                        </form>
+                      ) : (
+                        <form onSubmit={handleForgotSend} className="space-y-4">
+                          <p className="text-sm text-gray-500 dark:text-zinc-400">Enter your phone — reset code sent via Telegram.</p>
+                          <div className="space-y-1.5">
+                            <Label>Phone Number</Label>
+                            <Input value={forgotIdentifier} onChange={(e) => setForgotIdentifier(e.target.value)} placeholder="+8801XXXXXXXXX" required autoFocus />
+                          </div>
+                          {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">{error}</p>}
+                          <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Sending…' : 'Send Reset Code'}</Button>
+                          <button type="button" className="w-full text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors" onClick={() => { setStaffForgot(false); resetForgot() }}>← Back to login</button>
+                        </form>
+                      )
                     )}
 
                     {/* OTP login */}

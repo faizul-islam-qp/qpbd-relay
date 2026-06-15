@@ -56,6 +56,16 @@ export class AuthController {
     return user
   }
 
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: { identifier: string }) {
+    return this.authService.forgotPassword(dto.identifier)
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() dto: { identifier: string; otp: string; newPassword: string }) {
+    return this.authService.resetPassword(dto.identifier, dto.otp, dto.newPassword)
+  }
+
   @Get('telegram-bot')
   telegramBot() {
     return {

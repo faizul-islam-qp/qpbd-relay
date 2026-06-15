@@ -24,6 +24,12 @@ export const authApi = {
 
   me: () => api.get('/auth/me').then((r) => r.data),
 
+  forgotPassword: (identifier: string) =>
+    api.post('/auth/forgot-password', { identifier }).then((r) => r.data),
+
+  resetPassword: (identifier: string, otp: string, newPassword: string) =>
+    api.post('/auth/reset-password', { identifier, otp, newPassword }).then((r) => r.data),
+
   getBotInfo: () =>
     api.get('/auth/telegram-bot').then((r) => r.data as { configured: boolean; botUsername: string | null }),
 }
