@@ -10,6 +10,7 @@ import EmployeeDashboard from '@/pages/employee/Dashboard'
 import CreateRequest from '@/pages/employee/CreateRequest'
 import EmployeeRequestDetail from '@/pages/employee/RequestDetail'
 
+import Display from '@/pages/Display'
 import StaffDashboard from '@/pages/staff/Dashboard'
 import StaffRequestDetail from '@/pages/staff/RequestDetail'
 
@@ -42,6 +43,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<RequireGuest><Login /></RequireGuest>} />
+        <Route path="/display" element={<Display />} />
 
         <Route element={<AppLayout />}>
           <Route path="/employee" element={<RequireRole role="employee"><EmployeeDashboard /></RequireRole>} />

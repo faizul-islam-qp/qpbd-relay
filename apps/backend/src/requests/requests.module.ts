@@ -6,6 +6,7 @@ import { RequestComment } from './entities/request-comment.entity'
 import { User } from '../users/entities/user.entity'
 import { RequestsService } from './requests.service'
 import { RequestsController } from './requests.controller'
+import { DisplayController } from './display.controller'
 import { EventsModule } from '../events/events.module'
 import { PushModule } from '../push/push.module'
 import { NotificationsModule } from '../notifications/notifications.module'
@@ -18,7 +19,7 @@ import { NotificationsModule } from '../notifications/notifications.module'
     NotificationsModule,
   ],
   providers: [RequestsService],
-  controllers: [RequestsController],
+  controllers: [RequestsController, DisplayController],
   exports: [RequestsService],
 })
 export class RequestsModule {}
