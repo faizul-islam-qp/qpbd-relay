@@ -32,6 +32,8 @@ docker-compose.prod.yml   Production (all services containerized)
 | Employee | Email + password | Create / edit / cancel own requests, comment |
 | Staff | Phone + OTP → set password | View all requests, update status, re-open closed requests, comment |
 
+**Password reset:** All roles can reset their password via OTP verification — employees/admin via email, staff via Telegram. "Forgot password?" link on the login page.
+
 ---
 
 ## Local Development
