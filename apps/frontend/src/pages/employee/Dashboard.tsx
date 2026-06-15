@@ -7,10 +7,14 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { PriorityBadge } from '@/components/common/PriorityBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { PlusCircle, Clock, MessageSquare } from 'lucide-react'
+import { PlusCircle, Clock, MessageSquare, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { RequestComments } from '@/components/common/RequestComments'
 import { useUnreadComments } from '@/store/unreadComments'
+import { cn } from '@/lib/utils'
+
+const STATUSES = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'DONE', 'REJECTED', 'CANCELLED']
+const PRIORITIES = ['URGENT', 'HIGH', 'NORMAL', 'LOW']
 
 export default function EmployeeDashboard() {
   const { user } = useAuthStore()
@@ -18,24 +22,84 @@ export default function EmployeeDashboard() {
   const unreadComments = useUnreadComments((s) => s.unread)
   const myRequestsBase = user?.role === 'admin' ? '/admin/my-requests' : '/employee'
   const listParams = user?.role === 'admin' ? { mine: 'true' } : undefined
+
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: ['requests', 'mine', user?.role],
     queryFn: () => requestsApi.list(listParams),
     refetchInterval: 15_000,
   })
 
-  const requests = data?.data || []
+  const allRequests = data?.data || []
+  const requests = allRequests.filter((r: any) => {
+    if (statusFilter && r.status !== statusFilter) return false
+    if (priorityFilter && r.priority !== priorityFilter) return false
+    return true
+  })
+
+  const hasFilter = statusFilter || priorityFilter
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold md:text-2xl">My Requests</h1>
-          <p className="text-muted-foreground text-sm">{requests.length} total</p>
+          <p className="text-muted-foreground text-sm">{requests.length} of {allRequests.length}</p>
         </div>
         <Button asChild size="sm">
           <Link to={`${myRequestsBase}/new`}><PlusCircle className="h-4 w-4 mr-1.5" />New</Link>
         </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="space-y-2 mb-4">
+        {/* Status filter */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 flex-wrap">
+          {STATUSES.map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(statusFilter === s ? null : s)}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs font-medium border flex-shrink-0 transition-colors',
+                statusFilter === s
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'bg-transparent text-muted-foreground border-border hover:border-foreground'
+              )}
+            >
+              {s.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+
+        {/* Priority filter */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {PRIORITIES.map(p => (
+            <button
+              key={p}
+              onClick={() => setPriorityFilter(priorityFilter === p ? null : p)}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs font-medium border flex-shrink-0 transition-colors',
+                priorityFilter === p
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'bg-transparent text-muted-foreground border-border hover:border-foreground',
+                p === 'URGENT' && priorityFilter === p && 'bg-red-500 border-red-500 text-white',
+                p === 'HIGH' && priorityFilter === p && 'bg-orange-500 border-orange-500 text-white',
+              )}
+            >
+              {p}
+            </button>
+          ))}
+          {hasFilter && (
+            <button
+              onClick={() => { setStatusFilter(null); setPriorityFilter(null) }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-red-300 text-red-400 hover:border-red-400 flex-shrink-0 transition-colors"
+            >
+              <X className="h-3 w-3" /> Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {isLoading && (
@@ -44,7 +108,7 @@ export default function EmployeeDashboard() {
         </div>
       )}
 
-      {!isLoading && requests.length === 0 && (
+      {!isLoading && allRequests.length === 0 && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-5xl mb-3">📋</p>
           <p className="font-medium">No requests yet</p>
@@ -52,6 +116,13 @@ export default function EmployeeDashboard() {
           <Button asChild className="mt-4">
             <Link to={`${myRequestsBase}/new`}>Create Request</Link>
           </Button>
+        </div>
+      )}
+
+      {!isLoading && allRequests.length > 0 && requests.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="text-3xl mb-2">🔍</p>
+          <p className="text-sm">No requests match the selected filters</p>
         </div>
       )}
 
